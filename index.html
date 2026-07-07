@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moonlight Media Shop</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23e0ad5a' d='M36.8 37.7a18.5 18.5 0 0 1-21.3-29 19 19 0 1 0 21.3 29Z'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#home" data-route-link="home" aria-label="Moonlight Media Shop home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img">
+            <path d="M36.8 37.7a18.5 18.5 0 0 1-21.3-29 19 19 0 1 0 21.3 29Z" />
+          </svg>
+        </span>
+        <span>
+          <span class="brand-name">Moonlight Media Shop</span>
+          <span class="brand-subtitle">Consent-first premium media</span>
+        </span>
+      </a>
+
+      <button class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      </button>
+
+      <nav class="main-nav" aria-label="Primary navigation">
+        <a class="nav-link active" href="#home" data-route-link="home">Home</a>
+        <a class="nav-link" href="#shop" data-route-link="shop">Shop</a>
+        <a class="nav-link" href="#videos" data-route-link="videos">Videos</a>
+        <a class="nav-link" href="#images" data-route-link="images">Images</a>
+        <a class="nav-link" href="#contracts" data-route-link="contracts">Contracts</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="icon-button cart-button" type="button" aria-label="Open cart">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6h15l-2 8H8L6 3H3" />
+            <circle cx="9" cy="20" r="1.5" />
+            <circle cx="18" cy="20" r="1.5" />
+          </svg>
+          <span>Cart (<span id="cartCount">0</span>)</span>
+        </button>
+        <button class="primary-button" type="button" data-route-link="contracts">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0" />
+          </svg>
+          Admin
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="page active" id="home" data-route="home">
+        <div class="home-grid">
+          <section class="hero-panel">
+            <div class="verification-banner" aria-label="Privacy-safe verification banner placeholder">
+              <div class="verification-art" aria-hidden="true">
+                <span class="corner top-left"></span>
+                <span class="corner top-right"></span>
+                <span class="corner bottom-left"></span>
+                <span class="corner bottom-right"></span>
+                <svg viewBox="0 0 80 96" role="img">
+                  <path d="M40 6 69 17v24c0 22-12.2 38.8-29 48C23.2 79.8 11 63 11 41V17L40 6Z" />
+                  <path d="m25 47 10.5 10.5L57 33" />
+                </svg>
+              </div>
+              <div class="verification-copy">
+                <h1>Privacy &amp; Verification</h1>
+                <p>Age-verified, consent-forward premium media curated by Mistress Steph.</p>
+                <div class="rating-row" aria-label="Five star editorial rating">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+                  </svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+                  </svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+                  </svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+                  </svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="disclosure-strip">
+              <div class="shield-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 3 20 6v6c0 5.2-3.1 8-8 9-4.9-1-8-3.8-8-9V6l8-3Z" />
+                  <path d="m8.8 12 2.2 2.2 4.8-5" />
+                </svg>
+              </div>
+              <div>
+                <h2>Consent Disclosure</h2>
+                <p>
+                  This site template is for consenting adult performers only. Do not publish identity
+                  documents, legal names, home addresses, or media involving anyone who has not knowingly
+                  agreed to public distribution. Harassment and targeting are not permitted.
+                </p>
+              </div>
+              <button class="secondary-button" type="button" data-route-link="contracts">View Standards</button>
+            </div>
+          </section>
+
+          <section class="feature-video panel">
+            <div class="section-heading">
+              <h2>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+                </svg>
+                Featured Video
+              </h2>
+              <button class="text-button" type="button" data-route-link="videos">Browse Videos</button>
+            </div>
+            <div class="video-frame featured-frame">
+              <div class="stage-prop" aria-hidden="true"></div>
+              <button class="play-button" type="button" aria-label="Preview featured video">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m9 7 8 5-8 5V7Z" />
+                </svg>
+              </button>
+              <div class="media-timeline" aria-hidden="true">
+                <span>00:00</span>
+                <div><span></span></div>
+                <span>21:42</span>
+              </div>
+            </div>
+            <div class="media-details">
+              <div>
+                <h3>Featured Session</h3>
+                <p>A premium preview card with no explicit media loaded.</p>
+              </div>
+              <button class="secondary-button" type="button" data-route-link="shop">View Details</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="feed-grid">
+          <section class="panel">
+            <div class="section-heading">
+              <h2>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 8h3l1.4-2h7.2L17 8h3v11H4V8Z" />
+                  <circle cx="12" cy="14" r="3" />
+                </svg>
+                Newest Images
+              </h2>
+              <button class="text-button" type="button" data-route-link="images">Image Gallery</button>
+            </div>
+            <div class="image-row">
+              <article class="image-card"><span class="image-icon"></span><span class="lock-icon"></span></article>
+              <article class="image-card"><span class="image-icon"></span><span class="lock-icon"></span></article>
+              <article class="image-card"><span class="image-icon"></span><span class="lock-icon"></span></article>
+              <article class="image-card"><span class="image-icon"></span><span class="lock-icon"></span></article>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-heading">
+              <h2>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 7h12v13H6V7ZM8 4l10 3M12 7l1.5-2.2M15 7l1.5-1.2M9 7l.8-3" />
+                </svg>
+                Popular Bundles
+              </h2>
+              <button class="text-button" type="button" data-route-link="shop">Shop All</button>
+            </div>
+            <div class="bundle-grid" id="homeBundles"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="page" id="shop" data-route="shop">
+        <div class="page-title-row">
+          <div>
+            <h1>Shop</h1>
+            <p>Premium access bundles, updated regularly with consent-verified media drops.</p>
+          </div>
+          <button class="secondary-button cart-button" type="button">Open Cart</button>
+        </div>
+        <div class="product-grid" id="shopProducts"></div>
+      </section>
+
+      <section class="page" id="videos" data-route="videos">
+        <div class="page-title-row">
+          <div>
+            <h1>Video Albums</h1>
+            <p>Albums are organized by bundle access, with VIP-only bonus albums after the core bundles.</p>
+          </div>
+          <div class="toolbar">
+            <label>
+              <span>Access</span>
+              <select id="videoCategory">
+                <option value="all">All Albums</option>
+                <option value="starter-access">Starter Access</option>
+                <option value="premium-bundle">Premium Bundle</option>
+                <option value="deluxe-collection">Deluxe Collection</option>
+                <option value="vip-pass">VIP Pass</option>
+                <option value="vip-extra">VIP Bonus Albums</option>
+              </select>
+            </label>
+            <label>
+              <span>Sort</span>
+              <select id="videoSort">
+                <option value="bundle">Bundle Order</option>
+                <option value="count">Most Videos</option>
+                <option value="popular">Popular</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <section class="media-upload-panel panel" id="videoUploadPanel" hidden>
+          <div>
+            <h2>Upload Videos</h2>
+            <p>Admin media uploads for the selected album. Files stay in this browser session.</p>
+          </div>
+          <div class="media-upload-controls">
+            <label>
+              <span>Album</span>
+              <select id="videoUploadAlbum"></select>
+            </label>
+          </div>
+          <label class="drop-zone media-drop-zone" for="videoUpload">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 16V4m0 0L7 9m5-5 5 5M5 20h14" />
+            </svg>
+            <span>Choose Videos</span>
+            <small>Video files, no frontend size cap</small>
+          </label>
+          <input id="videoUpload" class="media-file-input" type="file" accept="video/*" multiple />
+          <p class="upload-status" id="videoUploadStatus" role="status"></p>
+        </section>
+        <section class="media-editor-panel panel" id="videoEditorPanel" hidden>
+          <div class="editor-head">
+            <div>
+              <h2>Video Editor</h2>
+              <p id="videoEditorSummary">Select an album to manage.</p>
+            </div>
+            <div class="editor-toolbar">
+              <label>
+                <span>Album</span>
+                <select id="videoEditorAlbum"></select>
+              </label>
+              <button class="secondary-button" type="button" data-delete-selected-media="video">Delete Selected</button>
+              <button class="secondary-button danger-button" type="button" data-clear-media-album="video">Clear Album</button>
+            </div>
+          </div>
+          <div class="editor-list" id="videoEditorList"></div>
+        </section>
+        <div class="video-grid" id="videoGrid"></div>
+      </section>
+
+      <section class="page" id="images" data-route="images">
+        <div class="page-title-row">
+          <div>
+            <h1>Image Gallery</h1>
+            <p>Image albums are arranged by bundle access, including three extra VIP-only collections.</p>
+          </div>
+          <div class="toolbar">
+            <label>
+              <span>Access</span>
+              <select id="imageCategory">
+                <option value="all">All Albums</option>
+                <option value="starter-access">Starter Access</option>
+                <option value="premium-bundle">Premium Bundle</option>
+                <option value="deluxe-collection">Deluxe Collection</option>
+                <option value="vip-pass">VIP Pass</option>
+                <option value="vip-extra">VIP Bonus Albums</option>
+              </select>
+            </label>
+            <label>
+              <span>Sort</span>
+              <select id="imageSort">
+                <option value="bundle">Bundle Order</option>
+                <option value="count">Most Images</option>
+                <option value="popular">Popular</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <section class="media-upload-panel panel" id="imageUploadPanel" hidden>
+          <div>
+            <h2>Upload Images</h2>
+            <p>Admin media uploads for the selected album. Files stay in this browser session.</p>
+          </div>
+          <div class="media-upload-controls">
+            <label>
+              <span>Album</span>
+              <select id="imageUploadAlbum"></select>
+            </label>
+          </div>
+          <label class="drop-zone media-drop-zone" for="imageUpload">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 16V4m0 0L7 9m5-5 5 5M5 20h14" />
+            </svg>
+            <span>Choose Images</span>
+            <small>Image files, no frontend size cap</small>
+          </label>
+          <input id="imageUpload" class="media-file-input" type="file" accept="image/*" multiple />
+          <p class="upload-status" id="imageUploadStatus" role="status"></p>
+        </section>
+        <section class="media-editor-panel panel" id="imageEditorPanel" hidden>
+          <div class="editor-head">
+            <div>
+              <h2>Image Editor</h2>
+              <p id="imageEditorSummary">Select an album to manage.</p>
+            </div>
+            <div class="editor-toolbar">
+              <label>
+                <span>Album</span>
+                <select id="imageEditorAlbum"></select>
+              </label>
+              <button class="secondary-button" type="button" data-delete-selected-media="image">Delete Selected</button>
+              <button class="secondary-button danger-button" type="button" data-clear-media-album="image">Clear Album</button>
+            </div>
+          </div>
+          <div class="editor-list" id="imageEditorList"></div>
+        </section>
+        <div class="gallery-grid" id="imageGrid"></div>
+      </section>
+
+      <section class="page" id="contracts" data-route="contracts">
+        <div class="page-title-row">
+          <div>
+            <h1>Contracts</h1>
+            <p>Public contract viewer. Admin access is required only for uploading, downloading, or deleting documents.</p>
+          </div>
+          <button class="secondary-button" type="button" id="logoutContracts" hidden>Lock</button>
+        </div>
+
+        <section class="contract-lock panel" id="contractLock">
+          <div class="lock-art" aria-hidden="true">
+            <svg viewBox="0 0 64 64">
+              <rect x="14" y="28" width="36" height="28" rx="4" />
+              <path d="M22 28v-8a10 10 0 0 1 20 0v8" />
+              <path d="M32 39v8" />
+            </svg>
+          </div>
+          <div>
+            <h2>Admin Access</h2>
+            <p>Enter the admin password to upload documents or enable download and delete controls.</p>
+            <form class="password-form" id="passwordForm">
+              <label>
+                <span>Password</span>
+                <input id="contractPassword" type="password" autocomplete="current-password" />
+              </label>
+              <button class="primary-button" type="submit">Unlock</button>
+            </form>
+            <p class="form-message" id="passwordMessage" role="status"></p>
+          </div>
+        </section>
+
+        <section class="contract-admin panel" id="contractAdmin">
+          <div class="tabs" role="tablist" aria-label="Contract tools">
+            <button class="tab active" type="button" data-tab="library">Public Documents</button>
+            <button class="tab" type="button" id="uploadTabButton" data-tab="upload" hidden>Upload Document</button>
+          </div>
+
+          <div class="tab-panel active" id="libraryTab" data-tab-panel="library">
+            <div class="table-wrap">
+              <table class="document-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Uploaded</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="documentRows"></tbody>
+              </table>
+            </div>
+            <div class="document-preview" id="documentPreview">
+              <p>Select a PDF, DOCX, or Word file from the library to preview it here.</p>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="uploadTab" data-tab-panel="upload">
+            <div class="upload-layout">
+              <div>
+                <h2>Upload New Document</h2>
+                <p>
+                  Add PDF or Word documents that you are authorized to publish or review. PDFs preview
+                  inline, DOCX files show extracted text when supported, and files stay in this browser
+                  session for the static demo.
+                </p>
+              </div>
+              <label class="drop-zone" for="documentUpload">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 16V4m0 0L7 9m5-5 5 5M5 20h14" />
+                </svg>
+                <span>Choose Files</span>
+                <small>PDF, DOC, or DOCX up to 50MB</small>
+              </label>
+              <input id="documentUpload" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple />
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <aside class="cart-drawer" id="cartDrawer" aria-label="Shopping cart" aria-hidden="true">
+      <div class="cart-panel">
+        <div class="cart-head">
+          <h2>Cart</h2>
+          <button class="icon-only" type="button" id="closeCart" aria-label="Close cart">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6 6 12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </div>
+        <div class="cart-items" id="cartItems"></div>
+        <div class="cart-total">
+          <span>Total</span>
+          <strong id="cartTotal">$0.00</strong>
+        </div>
+        <div class="checkout-status" id="checkoutStatus" aria-live="polite"></div>
+        <button class="primary-button full-width" type="button" id="checkoutButton">Checkout</button>
+      </div>
+    </aside>
+
+    <script src="script.js"></script>
+  </body>
+</html>
