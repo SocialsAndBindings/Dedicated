@@ -32,6 +32,8 @@
         <a class="nav-link" href="#shop" data-route-link="shop">Shop</a>
         <a class="nav-link" href="#videos" data-route-link="videos">Videos</a>
         <a class="nav-link" href="#images" data-route-link="images">Images</a>
+        <a class="nav-link" href="#feed" data-route-link="feed">Feed</a>
+        <a class="nav-link" href="#photo-editor" data-route-link="photo-editor">Editor</a>
         <a class="nav-link" href="#contracts" data-route-link="contracts">Contracts</a>
       </nav>
 
@@ -325,6 +327,299 @@
           <div class="editor-list" id="imageEditorList"></div>
         </section>
         <div class="gallery-grid" id="imageGrid"></div>
+      </section>
+
+      <section class="page" id="feed" data-route="feed">
+        <div class="page-title-row">
+          <div>
+            <h1>Feed</h1>
+            <p>Published edits from the photo editor appear here as a local media feed.</p>
+          </div>
+          <div class="toolbar">
+            <button class="secondary-button" type="button" data-route-link="photo-editor">Open Editor</button>
+            <button class="secondary-button danger-button" type="button" id="clearPhotoFeed">Clear Feed</button>
+          </div>
+        </div>
+        <div class="photo-feed-grid" id="photoFeedGrid"></div>
+      </section>
+
+      <section class="page" id="photo-editor" data-route="photo-editor">
+        <div class="page-title-row">
+          <div>
+            <h1>Photo Editor</h1>
+            <p>Upload a photo, edit it on canvas, then publish the finished image to the feed.</p>
+          </div>
+          <button class="secondary-button" type="button" data-route-link="feed">View Feed</button>
+        </div>
+
+        <div class="photo-panel-menu" aria-label="Photo editor panel controls">
+          <div class="photo-panel-menu-group">
+            <span>Left Panel</span>
+            <div class="photo-panel-menu-buttons" role="group" aria-label="Left panel tools">
+              <button class="active" type="button" data-editor-panel="left" data-editor-section="source">Source</button>
+              <button type="button" data-editor-panel="left" data-editor-section="post">Post</button>
+              <button type="button" data-editor-panel="left" data-editor-section="actions">Actions</button>
+            </div>
+          </div>
+
+          <div class="photo-panel-menu-group">
+            <span>Right Panel</span>
+            <div class="photo-panel-menu-buttons" role="group" aria-label="Right panel tools">
+              <button class="active" type="button" data-editor-panel="right" data-editor-section="presets">Presets</button>
+              <button type="button" data-editor-panel="right" data-editor-section="color">Color</button>
+              <button type="button" data-editor-panel="right" data-editor-section="effects">Effects</button>
+              <button type="button" data-editor-panel="right" data-editor-section="transform">Transform</button>
+              <button type="button" data-editor-panel="right" data-editor-section="brush">Brush</button>
+              <button type="button" data-editor-panel="right" data-editor-section="text">Text</button>
+              <button type="button" data-editor-panel="right" data-editor-section="shapes">Shapes</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="photo-editor-shell">
+          <aside class="photo-tool-panel panel">
+            <section class="tool-section active" data-panel-section="source" data-panel-side="left">
+              <h2>Source</h2>
+              <label class="drop-zone photo-drop-zone" for="photoEditorUpload">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 16V4m0 0L7 9m5-5 5 5M5 20h14" />
+                </svg>
+                <span>Choose Photo</span>
+                <small>JPG, PNG, WebP, GIF</small>
+              </label>
+              <input id="photoEditorUpload" class="media-file-input" type="file" accept="image/*" />
+            </section>
+
+            <section class="tool-section" data-panel-section="post" data-panel-side="left">
+              <h2>Feed Post</h2>
+              <label>
+                <span>Title</span>
+                <input id="photoFeedTitle" type="text" placeholder="Untitled edit" />
+              </label>
+              <label>
+                <span>Caption</span>
+                <textarea id="photoFeedCaption" rows="4" placeholder="Caption"></textarea>
+              </label>
+              <button class="primary-button full-width" type="button" id="publishPhotoFeed">Publish to Feed</button>
+            </section>
+
+            <section class="tool-section" data-panel-section="actions" data-panel-side="left">
+              <h2>Actions</h2>
+              <div class="button-grid">
+                <button class="secondary-button" type="button" id="undoPhotoEdit">Undo</button>
+                <button class="secondary-button" type="button" id="redoPhotoEdit">Redo</button>
+                <button class="secondary-button" type="button" id="resetPhotoEdit">Reset</button>
+                <button class="secondary-button" type="button" id="downloadPhotoEdit">Download</button>
+              </div>
+            </section>
+          </aside>
+
+          <section class="photo-canvas-panel panel">
+            <div class="photo-canvas-toolbar">
+              <div>
+                <strong id="photoCanvasLabel">No photo loaded</strong>
+                <span id="photoCanvasMeta">0 x 0</span>
+              </div>
+              <label class="inline-check">
+                <input id="compareOriginal" type="checkbox" />
+                <span>Compare</span>
+              </label>
+            </div>
+            <div class="photo-canvas-wrap">
+              <canvas id="photoCanvas" width="1200" height="800"></canvas>
+              <div class="photo-empty-state" id="photoEmptyState">Upload a photo</div>
+            </div>
+            <p class="upload-status" id="photoEditorStatus" role="status"></p>
+          </section>
+
+          <aside class="photo-tool-panel panel">
+            <section class="tool-section active" data-panel-section="presets" data-panel-side="right">
+              <h2>Presets</h2>
+              <div class="preset-grid">
+                <button type="button" data-photo-preset="clean">Clean</button>
+                <button type="button" data-photo-preset="warm">Warm</button>
+                <button type="button" data-photo-preset="noir">Noir</button>
+                <button type="button" data-photo-preset="vintage">Vintage</button>
+                <button type="button" data-photo-preset="soft">Soft</button>
+                <button type="button" data-photo-preset="punch">Punch</button>
+              </div>
+            </section>
+
+            <section class="tool-section" data-panel-section="color" data-panel-side="right">
+              <h2>Color</h2>
+              <label class="range-control">
+                <span>Brightness <output id="brightnessValue">100</output></span>
+                <input id="brightnessControl" type="range" min="0" max="200" value="100" data-photo-setting="brightness" />
+              </label>
+              <label class="range-control">
+                <span>Contrast <output id="contrastValue">100</output></span>
+                <input id="contrastControl" type="range" min="0" max="200" value="100" data-photo-setting="contrast" />
+              </label>
+              <label class="range-control">
+                <span>Saturation <output id="saturationValue">100</output></span>
+                <input id="saturationControl" type="range" min="0" max="220" value="100" data-photo-setting="saturation" />
+              </label>
+              <label class="range-control">
+                <span>Hue <output id="hueValue">0</output></span>
+                <input id="hueControl" type="range" min="-180" max="180" value="0" data-photo-setting="hue" />
+              </label>
+              <label class="range-control">
+                <span>Warmth <output id="warmthValue">0</output></span>
+                <input id="warmthControl" type="range" min="-100" max="100" value="0" data-photo-setting="warmth" />
+              </label>
+              <label class="range-control">
+                <span>Grayscale <output id="grayscaleValue">0</output></span>
+                <input id="grayscaleControl" type="range" min="0" max="100" value="0" data-photo-setting="grayscale" />
+              </label>
+              <label class="range-control">
+                <span>Sepia <output id="sepiaValue">0</output></span>
+                <input id="sepiaControl" type="range" min="0" max="100" value="0" data-photo-setting="sepia" />
+              </label>
+            </section>
+
+            <section class="tool-section" data-panel-section="effects" data-panel-side="right">
+              <h2>Effects</h2>
+              <label class="range-control">
+                <span>Blur <output id="blurValue">0</output></span>
+                <input id="blurControl" type="range" min="0" max="12" value="0" step="0.5" data-photo-setting="blur" />
+              </label>
+              <label class="range-control">
+                <span>Vignette <output id="vignetteValue">0</output></span>
+                <input id="vignetteControl" type="range" min="0" max="100" value="0" data-photo-setting="vignette" />
+              </label>
+              <label class="range-control">
+                <span>Pixelate <output id="pixelateValue">1</output></span>
+                <input id="pixelateControl" type="range" min="1" max="32" value="1" data-photo-setting="pixelate" />
+              </label>
+              <label class="range-control">
+                <span>Frame <output id="frameWidthValue">0</output></span>
+                <input id="frameWidthControl" type="range" min="0" max="80" value="0" data-photo-setting="frameWidth" />
+              </label>
+              <label>
+                <span>Frame Color</span>
+                <input id="frameColorControl" type="color" value="#e0ad5a" data-photo-setting="frameColor" />
+              </label>
+              <label class="inline-check">
+                <input id="watermarkControl" type="checkbox" data-photo-setting="watermark" />
+                <span>Watermark</span>
+              </label>
+            </section>
+
+            <section class="tool-section" data-panel-section="transform" data-panel-side="right">
+              <h2>Transform</h2>
+              <div class="button-grid">
+                <button class="secondary-button" type="button" data-photo-transform="rotate-left">Rotate Left</button>
+                <button class="secondary-button" type="button" data-photo-transform="rotate-right">Rotate Right</button>
+                <button class="secondary-button" type="button" data-photo-transform="flip-x">Flip X</button>
+                <button class="secondary-button" type="button" data-photo-transform="flip-y">Flip Y</button>
+              </div>
+              <label>
+                <span>Crop</span>
+                <select id="cropRatio">
+                  <option value="original">Original</option>
+                  <option value="1:1">Square</option>
+                  <option value="4:5">4:5</option>
+                  <option value="16:9">16:9</option>
+                  <option value="9:16">9:16</option>
+                </select>
+              </label>
+              <button class="secondary-button full-width" type="button" id="applyCrop">Apply Crop</button>
+              <div class="resize-grid">
+                <label>
+                  <span>Width</span>
+                  <input id="resizeWidth" type="number" min="64" step="1" />
+                </label>
+                <label>
+                  <span>Height</span>
+                  <input id="resizeHeight" type="number" min="64" step="1" />
+                </label>
+              </div>
+              <button class="secondary-button full-width" type="button" id="applyResize">Resize</button>
+            </section>
+
+            <section class="tool-section" data-panel-section="brush" data-panel-side="right">
+              <h2>Brush</h2>
+              <div class="segmented-control" role="group" aria-label="Paint tool">
+                <button class="active" type="button" data-photo-tool="brush">Brush</button>
+                <button type="button" data-photo-tool="eraser">Eraser</button>
+              </div>
+              <label>
+                <span>Color</span>
+                <input id="brushColor" type="color" value="#ff6077" />
+              </label>
+              <label class="range-control">
+                <span>Size <output id="brushSizeValue">18</output></span>
+                <input id="brushSize" type="range" min="2" max="120" value="18" />
+              </label>
+              <label class="range-control">
+                <span>Opacity <output id="brushOpacityValue">85</output></span>
+                <input id="brushOpacity" type="range" min="5" max="100" value="85" />
+              </label>
+            </section>
+
+            <section class="tool-section" data-panel-section="text" data-panel-side="right">
+              <h2>Text</h2>
+              <input id="overlayText" type="text" placeholder="Text overlay" />
+              <div class="resize-grid">
+                <label>
+                  <span>Size</span>
+                  <input id="textSize" type="number" min="12" max="220" value="54" />
+                </label>
+                <label>
+                  <span>Color</span>
+                  <input id="textColor" type="color" value="#f5efe3" />
+                </label>
+              </div>
+              <label>
+                <span>Font</span>
+                <select id="textFont">
+                  <option value="Georgia, serif">Serif</option>
+                  <option value="Inter, sans-serif">Sans</option>
+                  <option value="Impact, sans-serif">Impact</option>
+                  <option value="'Courier New', monospace">Mono</option>
+                </select>
+              </label>
+              <label>
+                <span>Placement</span>
+                <select id="textPlacement">
+                  <option value="center">Center</option>
+                  <option value="top">Top</option>
+                  <option value="bottom">Bottom</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                </select>
+              </label>
+              <button class="secondary-button full-width" type="button" id="addPhotoText">Add Text</button>
+            </section>
+
+            <section class="tool-section" data-panel-section="shapes" data-panel-side="right">
+              <h2>Shapes</h2>
+              <div class="resize-grid">
+                <label>
+                  <span>Shape</span>
+                  <select id="shapeType">
+                    <option value="rectangle">Rectangle</option>
+                    <option value="circle">Circle</option>
+                    <option value="line">Line</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Color</span>
+                  <input id="shapeColor" type="color" value="#e0ad5a" />
+                </label>
+              </div>
+              <label class="range-control">
+                <span>Size <output id="shapeSizeValue">35</output></span>
+                <input id="shapeSize" type="range" min="10" max="90" value="35" />
+              </label>
+              <label class="inline-check">
+                <input id="shapeFill" type="checkbox" />
+                <span>Fill</span>
+              </label>
+              <button class="secondary-button full-width" type="button" id="addPhotoShape">Add Shape</button>
+            </section>
+          </aside>
+        </div>
       </section>
 
       <section class="page" id="contracts" data-route="contracts">

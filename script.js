@@ -1,4 +1,4 @@
-const ADMIN_PASSWORD = "MollyMichael1";
+const ADMIN_PASSWORD = "SnowyMichael1";
 const CHECKOUT_ENDPOINT = "/api/create-checkout";
 const CHECKOUT_PROCESSOR_CONNECTED = false;
 
@@ -179,7 +179,38 @@ const imageAlbums = [
 ];
 
 const uploadedMediaUrls = [];
+const PHOTO_FEED_STORAGE_KEY = "stephsitePhotoFeed";
+const PHOTO_EDITOR_MAX_SIZE = 1800;
+const DEFAULT_PHOTO_SETTINGS = {
+  brightness: 100,
+  contrast: 100,
+  saturation: 100,
+  hue: 0,
+  warmth: 0,
+  grayscale: 0,
+  sepia: 0,
+  blur: 0,
+  vignette: 0,
+  pixelate: 1,
+  frameWidth: 0,
+  frameColor: "#e0ad5a",
+  watermark: false,
+};
+
 let cart = [];
+let photoFeed = [];
+let photoEditorState = {
+  image: null,
+  fileName: "",
+  originalDataUrl: "",
+  baseDataUrl: "",
+  settings: { ...DEFAULT_PHOTO_SETTINGS },
+  history: [],
+  historyIndex: -1,
+  drawing: false,
+  activeTool: "brush",
+  lastPoint: null,
+};
 let documents = [
   {
     id: "sample-consent-standards",
@@ -836,6 +867,698 @@ function addUploadedMedia(kind, files) {
   syncMediaUi(kind);
 }
 
+function getPhotoCanvas() {
+  return document.querySelector("#photoCanvas");
+}
+
+function getPhotoContext() {
+  return getPhotoCanvas()?.getContext("2d", { willReadFrequently: true });
+}
+
+function hasLoadedPhoto() {
+  return Boolean(photoEditorState.image);
+}
+
+function setPhotoStatus(message) {
+  const status = document.querySelector("#photoEditorStatus");
+  if (status) status.textContent = message || "";
+}
+
+function updatePhotoMeta() {
+  const label = document.querySelector("#photoCanvasLabel");
+  const meta = document.querySelector("#photoCanvasMeta");
+  const canvas = getPhotoCanvas();
+
+  if (!canvas || !hasLoadedPhoto()) {
+    if (label) label.textContent = "No photo loaded";
+    if (meta) meta.textContent = "0 x 0";
+    return;
+  }
+
+  if (label) label.textContent = photoEditorState.fileName || "Edited photo";
+  if (meta) meta.textContent = `${canvas.width} x ${canvas.height}`;
+  document.querySelector("#resizeWidth").value = canvas.width;
+  document.querySelector("#resizeHeight").value = canvas.height;
+}
+
+function clonePhotoSettings(settings = photoEditorState.settings) {
+  return { ...settings };
+}
+
+function resetPhotoSettings() {
+  photoEditorState.settings = clonePhotoSettings(DEFAULT_PHOTO_SETTINGS);
+  syncPhotoControls();
+}
+
+function getPhotoSettingControlIds() {
+  return {
+    brightness: "brightnessControl",
+    contrast: "contrastControl",
+    saturation: "saturationControl",
+    hue: "hueControl",
+    warmth: "warmthControl",
+    grayscale: "grayscaleControl",
+    sepia: "sepiaControl",
+    blur: "blurControl",
+    vignette: "vignetteControl",
+    pixelate: "pixelateControl",
+    frameWidth: "frameWidthControl",
+    frameColor: "frameColorControl",
+    watermark: "watermarkControl",
+  };
+}
+
+function syncPhotoControls() {
+  const controls = getPhotoSettingControlIds();
+
+  Object.entries(controls).forEach(([setting, id]) => {
+    const control = document.querySelector(`#${id}`);
+    if (!control) return;
+
+    if (control.type === "checkbox") {
+      control.checked = Boolean(photoEditorState.settings[setting]);
+    } else {
+      control.value = photoEditorState.settings[setting];
+    }
+  });
+
+  [
+    "brightness",
+    "contrast",
+    "saturation",
+    "hue",
+    "warmth",
+    "grayscale",
+    "sepia",
+    "blur",
+    "vignette",
+    "pixelate",
+    "frameWidth",
+  ].forEach((setting) => {
+    const output = document.querySelector(`#${setting}Value`);
+    if (output) output.textContent = photoEditorState.settings[setting];
+  });
+
+  const brushSize = document.querySelector("#brushSize");
+  const brushOpacity = document.querySelector("#brushOpacity");
+  const shapeSize = document.querySelector("#shapeSize");
+  if (brushSize) document.querySelector("#brushSizeValue").textContent = brushSize.value;
+  if (brushOpacity) document.querySelector("#brushOpacityValue").textContent = brushOpacity.value;
+  if (shapeSize) document.querySelector("#shapeSizeValue").textContent = shapeSize.value;
+}
+
+function getPhotoFilterString() {
+  const settings = photoEditorState.settings;
+  return [
+    `brightness(${settings.brightness}%)`,
+    `contrast(${settings.contrast}%)`,
+    `saturate(${settings.saturation}%)`,
+    `grayscale(${settings.grayscale}%)`,
+    `sepia(${settings.sepia}%)`,
+    `hue-rotate(${settings.hue}deg)`,
+    `blur(${settings.blur}px)`,
+  ].join(" ");
+}
+
+function drawWarmthOverlay(ctx, canvas) {
+  const warmth = Number(photoEditorState.settings.warmth);
+  if (!warmth) return;
+
+  ctx.save();
+  ctx.globalCompositeOperation = "soft-light";
+  ctx.globalAlpha = Math.min(Math.abs(warmth) / 100, 1) * 0.34;
+  ctx.fillStyle = warmth > 0 ? "#f3a14f" : "#4c8dff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+}
+
+function drawVignette(ctx, canvas) {
+  const amount = Number(photoEditorState.settings.vignette);
+  if (!amount) return;
+
+  const radius = Math.max(canvas.width, canvas.height) * 0.68;
+  const gradient = ctx.createRadialGradient(
+    canvas.width / 2,
+    canvas.height / 2,
+    radius * 0.2,
+    canvas.width / 2,
+    canvas.height / 2,
+    radius,
+  );
+  gradient.addColorStop(0, "rgba(0, 0, 0, 0)");
+  gradient.addColorStop(1, `rgba(0, 0, 0, ${Math.min(amount / 100, 1) * 0.78})`);
+  ctx.save();
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+}
+
+function drawFrame(ctx, canvas) {
+  const width = Number(photoEditorState.settings.frameWidth);
+  if (!width) return;
+
+  ctx.save();
+  ctx.lineWidth = width;
+  ctx.strokeStyle = photoEditorState.settings.frameColor;
+  ctx.strokeRect(width / 2, width / 2, canvas.width - width, canvas.height - width);
+  ctx.restore();
+}
+
+function drawWatermark(ctx, canvas) {
+  if (!photoEditorState.settings.watermark) return;
+
+  const text = "Mistress Steph";
+  const fontSize = Math.max(22, Math.round(canvas.width * 0.038));
+  ctx.save();
+  ctx.font = `700 ${fontSize}px Georgia, serif`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "bottom";
+  ctx.lineWidth = Math.max(3, fontSize * 0.12);
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.62)";
+  ctx.fillStyle = "rgba(245, 239, 227, 0.92)";
+  ctx.strokeText(text, canvas.width - fontSize * 0.55, canvas.height - fontSize * 0.45);
+  ctx.fillText(text, canvas.width - fontSize * 0.55, canvas.height - fontSize * 0.45);
+  ctx.restore();
+}
+
+function drawPhotoEditor() {
+  const canvas = getPhotoCanvas();
+  const ctx = getPhotoContext();
+  const image = photoEditorState.image;
+  const wrap = document.querySelector(".photo-canvas-wrap");
+
+  if (!canvas || !ctx) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  wrap?.classList.toggle("has-photo", Boolean(image));
+
+  if (!image) {
+    updatePhotoMeta();
+    return;
+  }
+
+  canvas.width = image.naturalWidth || image.width;
+  canvas.height = image.naturalHeight || image.height;
+  const pixelate = Math.max(1, Number(photoEditorState.settings.pixelate));
+
+  ctx.save();
+  ctx.filter = getPhotoFilterString();
+
+  if (pixelate > 1) {
+    const smallCanvas = document.createElement("canvas");
+    const smallCtx = smallCanvas.getContext("2d");
+    smallCanvas.width = Math.max(1, Math.round(canvas.width / pixelate));
+    smallCanvas.height = Math.max(1, Math.round(canvas.height / pixelate));
+    smallCtx.filter = getPhotoFilterString();
+    smallCtx.drawImage(image, 0, 0, smallCanvas.width, smallCanvas.height);
+    ctx.filter = "none";
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(smallCanvas, 0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
+  } else {
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  }
+
+  ctx.restore();
+  drawWarmthOverlay(ctx, canvas);
+  drawVignette(ctx, canvas);
+  drawFrame(ctx, canvas);
+  drawWatermark(ctx, canvas);
+  updatePhotoMeta();
+}
+
+function loadImageElement(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = dataUrl;
+  });
+}
+
+async function setPhotoBase(dataUrl, options = {}) {
+  const image = await loadImageElement(dataUrl);
+  photoEditorState.image = image;
+  photoEditorState.baseDataUrl = dataUrl;
+  if (options.fileName) photoEditorState.fileName = options.fileName;
+  if (options.original) photoEditorState.originalDataUrl = dataUrl;
+  if (options.resetSettings) resetPhotoSettings();
+  drawPhotoEditor();
+  if (options.history) pushPhotoHistory();
+}
+
+async function createFittedImageDataUrl(file) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  const image = await loadImageElement(dataUrl);
+  const scale = Math.min(1, PHOTO_EDITOR_MAX_SIZE / Math.max(image.naturalWidth, image.naturalHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+  canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/png");
+}
+
+function pushPhotoHistory() {
+  if (!photoEditorState.baseDataUrl) return;
+
+  photoEditorState.history = photoEditorState.history.slice(0, photoEditorState.historyIndex + 1);
+  photoEditorState.history.push({
+    dataUrl: photoEditorState.baseDataUrl,
+    settings: clonePhotoSettings(),
+    fileName: photoEditorState.fileName,
+  });
+  photoEditorState.historyIndex = photoEditorState.history.length - 1;
+}
+
+async function restorePhotoHistory(index) {
+  const snapshot = photoEditorState.history[index];
+  if (!snapshot) return;
+
+  photoEditorState.historyIndex = index;
+  photoEditorState.settings = clonePhotoSettings(snapshot.settings);
+  photoEditorState.fileName = snapshot.fileName;
+  syncPhotoControls();
+  await setPhotoBase(snapshot.dataUrl, { history: false });
+}
+
+function getRenderedPhotoDataUrl(type = "image/png", quality = 0.92) {
+  drawPhotoEditor();
+  return getPhotoCanvas().toDataURL(type, quality);
+}
+
+async function commitRenderedPhoto(message) {
+  if (!hasLoadedPhoto()) return;
+
+  const dataUrl = getRenderedPhotoDataUrl("image/png");
+  resetPhotoSettings();
+  await setPhotoBase(dataUrl, { history: true });
+  setPhotoStatus(message);
+}
+
+async function handlePhotoUpload(files) {
+  const file = [...files][0];
+  if (!file || !file.type.startsWith("image/")) {
+    setPhotoStatus("Choose an image file.");
+    return;
+  }
+
+  const dataUrl = await createFittedImageDataUrl(file);
+  photoEditorState.history = [];
+  photoEditorState.historyIndex = -1;
+  await setPhotoBase(dataUrl, {
+    fileName: file.name,
+    original: true,
+    resetSettings: true,
+    history: true,
+  });
+  document.querySelector("#photoFeedTitle").value = fileNameToAlbumTitle(file.name);
+  setPhotoStatus(`Loaded ${file.name}.`);
+}
+
+function setPhotoSetting(setting, value, remember = false) {
+  if (setting === "watermark") {
+    photoEditorState.settings[setting] = Boolean(value);
+  } else if (setting === "frameColor") {
+    photoEditorState.settings[setting] = value;
+  } else {
+    photoEditorState.settings[setting] = Number(value);
+  }
+
+  syncPhotoControls();
+  drawPhotoEditor();
+  if (remember) pushPhotoHistory();
+}
+
+function applyPhotoPreset(preset) {
+  const presets = {
+    clean: { ...DEFAULT_PHOTO_SETTINGS },
+    warm: { ...DEFAULT_PHOTO_SETTINGS, brightness: 106, contrast: 108, saturation: 118, warmth: 42 },
+    noir: { ...DEFAULT_PHOTO_SETTINGS, contrast: 132, saturation: 70, grayscale: 100, vignette: 38 },
+    vintage: { ...DEFAULT_PHOTO_SETTINGS, brightness: 104, contrast: 92, saturation: 82, sepia: 42, warmth: 28, vignette: 24 },
+    soft: { ...DEFAULT_PHOTO_SETTINGS, brightness: 112, contrast: 88, saturation: 92, blur: 0.5, warmth: 18 },
+    punch: { ...DEFAULT_PHOTO_SETTINGS, brightness: 104, contrast: 126, saturation: 146, vignette: 18 },
+  };
+
+  photoEditorState.settings = clonePhotoSettings(presets[preset] || DEFAULT_PHOTO_SETTINGS);
+  syncPhotoControls();
+  drawPhotoEditor();
+  pushPhotoHistory();
+}
+
+async function transformPhoto(type) {
+  if (!hasLoadedPhoto()) return;
+
+  const sourceImage = await loadImageElement(getRenderedPhotoDataUrl("image/png"));
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  if (type === "rotate-left" || type === "rotate-right") {
+    canvas.width = sourceImage.height;
+    canvas.height = sourceImage.width;
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(type === "rotate-right" ? Math.PI / 2 : -Math.PI / 2);
+    ctx.drawImage(sourceImage, -sourceImage.width / 2, -sourceImage.height / 2);
+  } else {
+    canvas.width = sourceImage.width;
+    canvas.height = sourceImage.height;
+    ctx.translate(type === "flip-x" ? canvas.width : 0, type === "flip-y" ? canvas.height : 0);
+    ctx.scale(type === "flip-x" ? -1 : 1, type === "flip-y" ? -1 : 1);
+    ctx.drawImage(sourceImage, 0, 0);
+  }
+
+  resetPhotoSettings();
+  await setPhotoBase(canvas.toDataURL("image/png"), { history: true });
+  setPhotoStatus("Transform applied.");
+}
+
+async function cropPhoto() {
+  if (!hasLoadedPhoto()) return;
+
+  const ratioValue = document.querySelector("#cropRatio").value;
+  if (ratioValue === "original") {
+    setPhotoStatus("Original crop selected.");
+    return;
+  }
+
+  const [ratioWidth, ratioHeight] = ratioValue.split(":").map(Number);
+  const sourceImage = await loadImageElement(getRenderedPhotoDataUrl("image/png"));
+  let cropWidth = sourceImage.width;
+  let cropHeight = cropWidth * (ratioHeight / ratioWidth);
+
+  if (cropHeight > sourceImage.height) {
+    cropHeight = sourceImage.height;
+    cropWidth = cropHeight * (ratioWidth / ratioHeight);
+  }
+
+  const cropX = (sourceImage.width - cropWidth) / 2;
+  const cropY = (sourceImage.height - cropHeight) / 2;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(cropWidth);
+  canvas.height = Math.round(cropHeight);
+  canvas
+    .getContext("2d")
+    .drawImage(sourceImage, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+
+  resetPhotoSettings();
+  await setPhotoBase(canvas.toDataURL("image/png"), { history: true });
+  setPhotoStatus("Crop applied.");
+}
+
+async function resizePhoto() {
+  if (!hasLoadedPhoto()) return;
+
+  const width = Number(document.querySelector("#resizeWidth").value);
+  const height = Number(document.querySelector("#resizeHeight").value);
+  if (!width || !height || width < 64 || height < 64) {
+    setPhotoStatus("Enter a valid size.");
+    return;
+  }
+
+  const sourceImage = await loadImageElement(getRenderedPhotoDataUrl("image/png"));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(width);
+  canvas.height = Math.round(height);
+  canvas.getContext("2d").drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
+  resetPhotoSettings();
+  await setPhotoBase(canvas.toDataURL("image/png"), { history: true });
+  setPhotoStatus("Resize applied.");
+}
+
+function getCanvasPoint(event) {
+  const canvas = getPhotoCanvas();
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+    y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+  };
+}
+
+function beginPhotoDraw(event) {
+  if (!hasLoadedPhoto()) return;
+
+  photoEditorState.drawing = true;
+  photoEditorState.lastPoint = getCanvasPoint(event);
+  getPhotoCanvas().setPointerCapture?.(event.pointerId);
+}
+
+function continuePhotoDraw(event) {
+  if (!photoEditorState.drawing || !photoEditorState.lastPoint) return;
+
+  const ctx = getPhotoContext();
+  const point = getCanvasPoint(event);
+  const brushSize = Number(document.querySelector("#brushSize").value);
+  const brushOpacity = Number(document.querySelector("#brushOpacity").value) / 100;
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = brushSize;
+  ctx.globalAlpha = brushOpacity;
+  if (photoEditorState.activeTool === "eraser") {
+    ctx.globalCompositeOperation = "destination-out";
+  } else {
+    ctx.strokeStyle = document.querySelector("#brushColor").value;
+  }
+  ctx.beginPath();
+  ctx.moveTo(photoEditorState.lastPoint.x, photoEditorState.lastPoint.y);
+  ctx.lineTo(point.x, point.y);
+  ctx.stroke();
+  ctx.restore();
+  photoEditorState.lastPoint = point;
+}
+
+async function endPhotoDraw(event) {
+  if (!photoEditorState.drawing) return;
+
+  photoEditorState.drawing = false;
+  photoEditorState.lastPoint = null;
+  getPhotoCanvas().releasePointerCapture?.(event.pointerId);
+  resetPhotoSettings();
+  await setPhotoBase(getPhotoCanvas().toDataURL("image/png"), { history: true });
+  setPhotoStatus("Brush edit applied.");
+}
+
+async function addPhotoText() {
+  if (!hasLoadedPhoto()) return;
+
+  const text = document.querySelector("#overlayText").value.trim();
+  if (!text) {
+    setPhotoStatus("Enter text first.");
+    return;
+  }
+
+  drawPhotoEditor();
+  const canvas = getPhotoCanvas();
+  const ctx = getPhotoContext();
+  const size = Number(document.querySelector("#textSize").value) || 54;
+  const placement = document.querySelector("#textPlacement").value;
+  const margin = Math.max(24, size * 0.7);
+  const positions = {
+    center: [canvas.width / 2, canvas.height / 2, "center", "middle"],
+    top: [canvas.width / 2, margin, "center", "top"],
+    bottom: [canvas.width / 2, canvas.height - margin, "center", "bottom"],
+    left: [margin, canvas.height / 2, "left", "middle"],
+    right: [canvas.width - margin, canvas.height / 2, "right", "middle"],
+  };
+  const [x, y, align, baseline] = positions[placement] || positions.center;
+
+  ctx.save();
+  ctx.font = `700 ${size}px ${document.querySelector("#textFont").value}`;
+  ctx.textAlign = align;
+  ctx.textBaseline = baseline;
+  ctx.lineWidth = Math.max(3, size * 0.12);
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.64)";
+  ctx.fillStyle = document.querySelector("#textColor").value;
+  ctx.strokeText(text, x, y);
+  ctx.fillText(text, x, y);
+  ctx.restore();
+
+  resetPhotoSettings();
+  await setPhotoBase(canvas.toDataURL("image/png"), { history: true });
+  setPhotoStatus("Text added.");
+}
+
+async function addPhotoShape() {
+  if (!hasLoadedPhoto()) return;
+
+  drawPhotoEditor();
+  const canvas = getPhotoCanvas();
+  const ctx = getPhotoContext();
+  const shape = document.querySelector("#shapeType").value;
+  const color = document.querySelector("#shapeColor").value;
+  const fill = document.querySelector("#shapeFill").checked;
+  const size = Number(document.querySelector("#shapeSize").value) / 100;
+  const boxWidth = canvas.width * size;
+  const boxHeight = canvas.height * size;
+  const x = (canvas.width - boxWidth) / 2;
+  const y = (canvas.height - boxHeight) / 2;
+
+  ctx.save();
+  ctx.lineWidth = Math.max(4, Math.round(Math.min(canvas.width, canvas.height) * 0.008));
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.globalAlpha = fill ? 0.35 : 0.92;
+
+  if (shape === "circle") {
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(boxWidth, boxHeight) / 2, 0, Math.PI * 2);
+    fill ? ctx.fill() : ctx.stroke();
+  } else if (shape === "line") {
+    ctx.beginPath();
+    ctx.moveTo(x, y + boxHeight);
+    ctx.lineTo(x + boxWidth, y);
+    ctx.stroke();
+  } else {
+    fill ? ctx.fillRect(x, y, boxWidth, boxHeight) : ctx.strokeRect(x, y, boxWidth, boxHeight);
+  }
+
+  ctx.restore();
+  resetPhotoSettings();
+  await setPhotoBase(canvas.toDataURL("image/png"), { history: true });
+  setPhotoStatus("Shape added.");
+}
+
+function loadPhotoFeed() {
+  try {
+    return JSON.parse(localStorage.getItem(PHOTO_FEED_STORAGE_KEY) || "[]");
+  } catch (error) {
+    return [];
+  }
+}
+
+function savePhotoFeed() {
+  try {
+    localStorage.setItem(PHOTO_FEED_STORAGE_KEY, JSON.stringify(photoFeed));
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function renderPhotoFeed() {
+  const grid = document.querySelector("#photoFeedGrid");
+  if (!grid) return;
+
+  if (!photoFeed.length) {
+    grid.innerHTML = '<p class="feed-empty">No published photos yet.</p>';
+    return;
+  }
+
+  grid.innerHTML = photoFeed
+    .map(
+      (item) => `
+        <article class="feed-card">
+          <img src="${item.dataUrl}" alt="${escapeHtml(item.title)}" />
+          <div class="feed-card-body">
+            <strong>${escapeHtml(item.title)}</strong>
+            ${item.caption ? `<p>${escapeHtml(item.caption)}</p>` : ""}
+            <small>${escapeHtml(item.createdAt)}</small>
+            <div class="feed-card-actions">
+              <button class="secondary-button" type="button" data-edit-feed-photo="${item.id}">Edit</button>
+              <button class="secondary-button" type="button" data-download-feed-photo="${item.id}">Download</button>
+              <button class="secondary-button danger-button" type="button" data-delete-feed-photo="${item.id}">Delete</button>
+            </div>
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function publishPhotoToFeed() {
+  if (!hasLoadedPhoto()) {
+    setPhotoStatus("Load a photo first.");
+    return;
+  }
+
+  const title = document.querySelector("#photoFeedTitle").value.trim() || "Untitled edit";
+  const caption = document.querySelector("#photoFeedCaption").value.trim();
+  const dataUrl = getRenderedPhotoDataUrl("image/jpeg", 0.9);
+  const item = {
+    id: crypto.randomUUID(),
+    title,
+    caption,
+    dataUrl,
+    createdAt: new Date().toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+  };
+
+  photoFeed = [item, ...photoFeed];
+  const persisted = savePhotoFeed();
+  renderPhotoFeed();
+  routeTo("feed");
+  setPhotoStatus(persisted ? "Published to feed." : "Published for this session. Browser storage is full.");
+}
+
+function deleteFeedPhoto(id) {
+  photoFeed = photoFeed.filter((item) => item.id !== id);
+  savePhotoFeed();
+  renderPhotoFeed();
+}
+
+function downloadDataUrl(dataUrl, filename) {
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = filename;
+  link.click();
+}
+
+function downloadFeedPhoto(id) {
+  const item = photoFeed.find((feedItem) => feedItem.id === id);
+  if (!item) return;
+  downloadDataUrl(item.dataUrl, `${slugify(item.title) || "feed-photo"}.jpg`);
+}
+
+async function editFeedPhoto(id) {
+  const item = photoFeed.find((feedItem) => feedItem.id === id);
+  if (!item) return;
+
+  photoEditorState.history = [];
+  photoEditorState.historyIndex = -1;
+  await setPhotoBase(item.dataUrl, {
+    fileName: `${item.title}.jpg`,
+    original: true,
+    resetSettings: true,
+    history: true,
+  });
+  document.querySelector("#photoFeedTitle").value = item.title;
+  document.querySelector("#photoFeedCaption").value = item.caption || "";
+  routeTo("photo-editor");
+  setPhotoStatus("Loaded feed photo.");
+}
+
+async function toggleOriginalCompare(showOriginal) {
+  if (!photoEditorState.originalDataUrl || !photoEditorState.baseDataUrl) return;
+
+  if (showOriginal) {
+    photoEditorState.compareSettings = clonePhotoSettings();
+    photoEditorState.image = await loadImageElement(photoEditorState.originalDataUrl);
+    photoEditorState.settings = clonePhotoSettings(DEFAULT_PHOTO_SETTINGS);
+  } else {
+    photoEditorState.image = await loadImageElement(photoEditorState.baseDataUrl);
+    photoEditorState.settings = clonePhotoSettings(photoEditorState.compareSettings || photoEditorState.settings);
+  }
+
+  syncPhotoControls();
+  drawPhotoEditor();
+}
+
+function clearPhotoFeed() {
+  photoFeed = [];
+  savePhotoFeed();
+  renderPhotoFeed();
+}
+
 function addToCart(productId) {
   const product = products.find((item) => item.id === productId);
   if (!product) return;
@@ -1292,6 +2015,18 @@ function showTab(tabName) {
   });
 }
 
+function setEditorPanelSection(side, section) {
+  document.querySelectorAll(`[data-panel-side="${side}"]`).forEach((panelSection) => {
+    panelSection.classList.toggle("active", panelSection.dataset.panelSection === section);
+  });
+
+  document.querySelectorAll(`[data-editor-panel="${side}"]`).forEach((button) => {
+    const isActive = button.dataset.editorSection === section;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
 document.addEventListener("click", (event) => {
   const routeLink = event.target.closest("[data-route-link]");
   if (routeLink) {
@@ -1364,6 +2099,51 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const editorPanelButton = event.target.closest("[data-editor-panel][data-editor-section]");
+  if (editorPanelButton) {
+    setEditorPanelSection(editorPanelButton.dataset.editorPanel, editorPanelButton.dataset.editorSection);
+    return;
+  }
+
+  const photoPresetButton = event.target.closest("[data-photo-preset]");
+  if (photoPresetButton) {
+    applyPhotoPreset(photoPresetButton.dataset.photoPreset);
+    return;
+  }
+
+  const photoTransformButton = event.target.closest("[data-photo-transform]");
+  if (photoTransformButton) {
+    transformPhoto(photoTransformButton.dataset.photoTransform);
+    return;
+  }
+
+  const photoToolButton = event.target.closest("[data-photo-tool]");
+  if (photoToolButton) {
+    photoEditorState.activeTool = photoToolButton.dataset.photoTool;
+    document.querySelectorAll("[data-photo-tool]").forEach((button) => {
+      button.classList.toggle("active", button === photoToolButton);
+    });
+    return;
+  }
+
+  const deleteFeedButton = event.target.closest("[data-delete-feed-photo]");
+  if (deleteFeedButton) {
+    deleteFeedPhoto(deleteFeedButton.dataset.deleteFeedPhoto);
+    return;
+  }
+
+  const downloadFeedButton = event.target.closest("[data-download-feed-photo]");
+  if (downloadFeedButton) {
+    downloadFeedPhoto(downloadFeedButton.dataset.downloadFeedPhoto);
+    return;
+  }
+
+  const editFeedButton = event.target.closest("[data-edit-feed-photo]");
+  if (editFeedButton) {
+    editFeedPhoto(editFeedButton.dataset.editFeedPhoto);
+    return;
+  }
+
   const tabButton = event.target.closest("[data-tab]");
   if (tabButton) {
     showTab(tabButton.dataset.tab);
@@ -1372,14 +2152,49 @@ document.addEventListener("click", (event) => {
 
 document.addEventListener("change", (event) => {
   const renameInput = event.target.closest("[data-rename-media-item]");
-  if (!renameInput) return;
+  if (renameInput) {
+    renameMediaItem(
+      renameInput.dataset.renameMediaItem,
+      renameInput.dataset.albumId,
+      renameInput.dataset.itemId,
+      renameInput.value,
+    );
+    return;
+  }
 
-  renameMediaItem(
-    renameInput.dataset.renameMediaItem,
-    renameInput.dataset.albumId,
-    renameInput.dataset.itemId,
-    renameInput.value,
-  );
+  const photoSetting = event.target.closest("[data-photo-setting]");
+  if (photoSetting) {
+    const value = photoSetting.type === "checkbox" ? photoSetting.checked : photoSetting.value;
+    setPhotoSetting(photoSetting.dataset.photoSetting, value, true);
+    return;
+  }
+
+  if (event.target.id === "compareOriginal") {
+    toggleOriginalCompare(event.target.checked);
+  }
+});
+
+document.addEventListener("input", (event) => {
+  const photoSetting = event.target.closest("[data-photo-setting]");
+  if (photoSetting) {
+    const value = photoSetting.type === "checkbox" ? photoSetting.checked : photoSetting.value;
+    setPhotoSetting(photoSetting.dataset.photoSetting, value, false);
+    return;
+  }
+
+  if (event.target.id === "brushSize") {
+    document.querySelector("#brushSizeValue").textContent = event.target.value;
+    return;
+  }
+
+  if (event.target.id === "brushOpacity") {
+    document.querySelector("#brushOpacityValue").textContent = event.target.value;
+    return;
+  }
+
+  if (event.target.id === "shapeSize") {
+    document.querySelector("#shapeSizeValue").textContent = event.target.value;
+  }
 });
 
 document.addEventListener("keydown", (event) => {
@@ -1507,6 +2322,47 @@ document.querySelector("#imageUpload").addEventListener("change", (event) => {
   addUploadedMedia("image", event.target.files);
   event.target.value = "";
 });
+document.querySelector("#photoEditorUpload").addEventListener("change", async (event) => {
+  await handlePhotoUpload(event.target.files);
+  event.target.value = "";
+});
+document.querySelector("#publishPhotoFeed").addEventListener("click", publishPhotoToFeed);
+document.querySelector("#downloadPhotoEdit").addEventListener("click", () => {
+  if (!hasLoadedPhoto()) {
+    setPhotoStatus("Load a photo first.");
+    return;
+  }
+  downloadDataUrl(getRenderedPhotoDataUrl("image/png"), `${slugify(photoEditorState.fileName) || "edited-photo"}.png`);
+});
+document.querySelector("#undoPhotoEdit").addEventListener("click", () => {
+  if (photoEditorState.historyIndex > 0) {
+    restorePhotoHistory(photoEditorState.historyIndex - 1);
+  }
+});
+document.querySelector("#redoPhotoEdit").addEventListener("click", () => {
+  if (photoEditorState.historyIndex < photoEditorState.history.length - 1) {
+    restorePhotoHistory(photoEditorState.historyIndex + 1);
+  }
+});
+document.querySelector("#resetPhotoEdit").addEventListener("click", async () => {
+  if (!photoEditorState.originalDataUrl) return;
+  photoEditorState.history = [];
+  photoEditorState.historyIndex = -1;
+  await setPhotoBase(photoEditorState.originalDataUrl, {
+    resetSettings: true,
+    history: true,
+  });
+  setPhotoStatus("Reset to original.");
+});
+document.querySelector("#applyCrop").addEventListener("click", cropPhoto);
+document.querySelector("#applyResize").addEventListener("click", resizePhoto);
+document.querySelector("#addPhotoText").addEventListener("click", addPhotoText);
+document.querySelector("#addPhotoShape").addEventListener("click", addPhotoShape);
+document.querySelector("#clearPhotoFeed").addEventListener("click", clearPhotoFeed);
+document.querySelector("#photoCanvas").addEventListener("pointerdown", beginPhotoDraw);
+document.querySelector("#photoCanvas").addEventListener("pointermove", continuePhotoDraw);
+document.querySelector("#photoCanvas").addEventListener("pointerup", endPhotoDraw);
+document.querySelector("#photoCanvas").addEventListener("pointercancel", endPhotoDraw);
 
 window.addEventListener("beforeunload", () => {
   uploadedMediaUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -1514,9 +2370,19 @@ window.addEventListener("beforeunload", () => {
 
 prepareMediaAlbums("video", videoAlbums);
 prepareMediaAlbums("image", imageAlbums);
+photoFeed = loadPhotoFeed();
 renderProducts();
 renderVideos();
 renderImages();
+renderPhotoFeed();
+syncPhotoControls();
+setEditorPanelSection("left", "source");
+setEditorPanelSection("right", "presets");
+drawPhotoEditor();
 renderCart();
 setContractAccess(sessionStorage.getItem("contractsUnlocked") === "true");
 routeTo(window.location.hash.replace("#", "") || "home");
+
+window.addEventListener("load", () => {
+  routeTo(window.location.hash.replace("#", "") || "home");
+});
